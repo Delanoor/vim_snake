@@ -1,14 +1,18 @@
+use bevy::{
+    core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
+    prelude::*,
+};
 use std::time::Duration;
 
-use bevy::{prelude::*, time::common_conditions::on_timer, window::PrimaryWindow};
+use bevy::{time::common_conditions::on_timer, window::PrimaryWindow};
 
 use rand::prelude::random;
 
 const ARENA_WIDTH: u32 = 50;
 const ARENA_HEIGHT: u32 = 50;
 
-const SNAKE_HEAD_COLOR: Color = Color::rgb(0.7, 0.7, 0.7);
-const FOOD_COLOR: Color = Color::rgb(1.0, 0.0, 1.0);
+const SNAKE_HEAD_COLOR: Color = Color::rgb(5.0, 5.0, 5.0);
+const FOOD_COLOR: Color = Color::rgb(3.0, 0.0, 3.0);
 
 #[derive(Component)]
 struct Food;
@@ -41,6 +45,15 @@ struct SnakeHead {
 
 fn main() {
     App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: (500.0, 500.0).into(),
+                title: "Vim_Snake".to_string(),
+                ..default()
+            }),
+
+            ..default()
+        }))
         .add_systems(Startup, setup_camera)
         .add_systems(Startup, spawn_snake)
         .add_systems(PostUpdate, (position_translation, size_scaling))
@@ -53,22 +66,28 @@ fn main() {
             snake_movement.run_if(on_timer(Duration::from_millis(150))),
         )
         .add_systems(Update, snake_movement_input.before(snake_movement))
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                resolution: (500.0, 500.0).into(),
-                title: "Vim_Snake".to_string(),
-                ..default()
-            }),
-
-            ..default()
-        }))
         .insert_resource(ClearColor(Color::rgb(0.04, 0.04, 0.04)))
         .insert_resource(Time::<Fixed>::from_seconds(1.0))
         .run();
 }
 
-fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle { ..default() });
+fn setup_camera(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+) {
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
+            tonemapping: Tonemapping::TonyMcMapface,
+            ..default()
+        },
+        BloomSettings::default(),
+    ));
 }
 
 fn spawn_snake(mut commands: Commands) {
@@ -76,6 +95,7 @@ fn spawn_snake(mut commands: Commands) {
         .spawn(SpriteBundle {
             sprite: Sprite {
                 color: SNAKE_HEAD_COLOR,
+
                 ..default()
             },
             transform: Transform {
